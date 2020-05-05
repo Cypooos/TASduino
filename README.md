@@ -1,2 +1,2 @@
 # ArduinoTASmaker
-A Python TAS maker for the nintendo switch which uses an arduino 
+A Python TAS maker for the nintendo switch which uses an arduino uno r3
