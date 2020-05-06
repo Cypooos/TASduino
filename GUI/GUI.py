@@ -27,7 +27,7 @@ class GraphicalUserInterface():
     menu_file.add_command(label="Open", command=alert)
     menu_file.add_separator()
     menu_file.add_command(label="Quit", command=self.windows.quit)
-    menubar.add_cascade(label="File", menu=menu1)
+    menubar.add_cascade(label="File", menu=menu_file)
 
 
     menu_compiler = tk.Menu(menubar, tearoff=0)
@@ -50,6 +50,6 @@ class GraphicalUserInterface():
 
   def start(self):
     self.setupMenu()
-    Tkinter.Tk.report_callback_exception = show_error
+    #Tkinter.Tk.report_callback_exception = show_error
     self.windows.mainloop()
     
