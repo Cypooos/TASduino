@@ -26,6 +26,20 @@ class TASmanager():
     self.activeTas = TAS(None) # new
     self.data = self.activeTas.read()
   
+  def convertToAbsolute(self,outputPath):
+    file_r = open(self.activeTas.path,"r")
+    file_w = open(outputPath,"w")
+    position = 0
+    while True:
+      content = file_r.readline()
+      if content == "":break;
+      nb_frame = int(content.split(" ")[0])
+      for x in range(nb_frame):
+        file_w.write(str(position)+" "+" ".join(content.split(" ")[1:]))
+        position +=1
+    file_r.close()
+    file_w.close()
+
   def saveAsTas(self,path):
     self.activeTas.path = path
     self.saveTas()
