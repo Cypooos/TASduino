@@ -14,8 +14,8 @@ class Compiler():
       "INCLUDE_DIR":self.options.get("include-dir","include"),
       "SRC_DIR":self.options.get("src-dir","src"),
       "PROGRAM":None,
-      "SRC":self.options.get("src",["$(SRC_DIR)/Joystick.c","$(SRC_DIR)/Descriptors.c","$(SRC_DIR)/custom/$(PROGRAM).c","$(LUFA_SRC_USB)"]),
-      "LUFA_PATH":self.options.get("lufa-dir","../LUFA/LUFA"),
+      "SRC":self.options.get("src","$(SRC_DIR)/Joystick.c $(SRC_DIR)/Descriptors.c $(SRC_DIR)/custom/$(PROGRAM).c $(LUFA_SRC_USB)"),
+      "LUFA_PATH":self.options.get("lufa-dir","LUFA/LUFA"),
       "CC_FLAGS":self.options.get("cc flags","-DUSE_LUFA_CONFIG_HEADER -Iinclude/"),
       "LD_FLAGS":self.options.get("ld-flags",""),
     }
@@ -32,32 +32,37 @@ class Compiler():
     model = self.options.get("dfu-model","atmega16u2")
     # atmega16u2 for arduino UNO
     os.system("sudo dfu-programmer "+model+" erase") # changing param. 
-    os.system("sudo dfu-programmer "+model+" flash core/compiler/"+name+".hex")
+    os.system("sudo dfu-programmer "+model+" flash core/compiler/compiled/"+name+".hex")
     os.system("sudo dfu-programmer "+model+" reset")
 
   def assembleProgram(self,program):
-    makefileDict["PROGRAM"] = program
-    file = open('makefile', 'w')
+    self.makefileDict["PROGRAM"] = program
+    file_w = open('core/makefile', 'w')
+    file_r = open('core/compiler/base.mk', 'r')
     data = ""
     # read value for makefile
-    for key, value in self.makefileDict:
-      data.append(key+" = "+value+"\n")
+    for key, value in self.makefileDict.items():
+      data += key+" = "+value+"\n"
     
-    data.append(self.options["makefile"])
+    data +=file_r.read()
     
     # change makefile with configuration
-    file.writelines( data )
+    file_w.writelines( data )
+    
+    file_r.close()
+    file_w.close()
 
     # building LUFA
-    if not os.path.exists('/LUFA/LUFA/'): # not sure yet
-      subprocess.run("make all -C /LUFA", shell=True)
+    os.system("make all -C core/LUFA/")
+
+    print("making...")
 
     # building program
-    subprocess.run("make -C /compiler")
+    os.system("make -C core/compiler")
 
     # moving program to /compiled
-    os.rename("compiler/"+program+".hex", "compiler/compiled/"+program+".hex")
+    os.rename("core/compiler/"+program+".hex", "core/compiler/compiled/"+program+".hex")
 
     # deleting useless out files
     for x in [".bin",".eep",".elf",".lss",".map",".sym"]:
-      os.remove("compiler/"+program+x)
+      os.remove("core/compiler/"+program+x)
