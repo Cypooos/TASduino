@@ -19,6 +19,14 @@ class Compiler():
       "CC_FLAGS":self.options.get("cc flags","-DUSE_LUFA_CONFIG_HEADER -Iinclude/"),
       "LD_FLAGS":self.options.get("ld-flags",""),
     }
+    self.reloadFirmwares()
+  
+  def reloadFirmwares(self):
+    returning = []
+    for file in os.listdir("core/compiler/compiled/firmwares/"):
+      if file.endswith(".hex"):
+        returning.append(file.split("/")[-1].split(".")[0])
+    self.options["Valid Firmwares"] = returning
   
   def resetFirmware(self):
     model = self.options.get("dfu-model","atmega16u2")
@@ -26,6 +34,8 @@ class Compiler():
     os.system("sudo dfu-programmer "+model+" flash compiler/compiled/firmwares/"+model+".hex")
     os.system("sudo dfu-programmer "+model+" reset")
 
+  def compileProgram(self):
+    pass
 
 
   def sendProgram(self,name):

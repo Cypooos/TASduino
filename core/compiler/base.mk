@@ -1,5 +1,5 @@
 
-# All key:value from Compiler.makefileDict will be put as vars for the makefile like:
+# All 'key:value' from Compiler.makefileDict will be put as vars for the makefile like:
 # KEY = VALUE\n
 # Default target
 all:
