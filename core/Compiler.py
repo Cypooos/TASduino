@@ -59,5 +59,5 @@ class Compiler():
     os.rename("compiler/"+program+".hex", "compiler/compiled/"+program+".hex")
 
     # deleting useless out files
-    for x in [".bin",".eep",".elf",".lss",".map",".sym"]
+    for x in [".bin",".eep",".elf",".lss",".map",".sym"]:
       os.remove("compiler/"+program+x)
