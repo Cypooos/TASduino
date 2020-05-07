@@ -1,12 +1,13 @@
 import os
 import subprocess
+import importlib
 
 class Compiler():
 
   def __init__(self,**kwargs):
     self.options = kwargs
     self.makefileDict = {
-      "MCU":self.options.get("dfu-model","atmega16u2"),
+      "MCU":None,
       "ARCH":self.options.get("arch","AVR8"),
       "F_CPU":self.options.get("f-cpu","16000000"),
       "F_USB":self.options.get("f-usb","16000000"),
@@ -15,7 +16,7 @@ class Compiler():
       "TAS_DATA":None,
       "SRC":None,
       "LUFA_PATH":self.options.get("lufa-dir","LUFA/LUFA"),
-      "CC_FLAGS":self.options.get("cc flags","-DUSE_LUFA_CONFIG_HEADER -Iinclude/"),
+      "CC_FLAGS":self.options.get("cc-flags","-DUSE_LUFA_CONFIG_HEADER -Iinclude/"),
       "LD_FLAGS":self.options.get("ld-flags",""),
     }
     self.reloadFirmwares()
@@ -39,22 +40,22 @@ class Compiler():
   def reloadJoysticks(self):
     returning = []
     for file in os.listdir("core/compiler/joysticks/"):
-      if os.path.isdir(file):
+      if os.path.isdir("core/compiler/joysticks/"+file):
         returning.append(file.split("/"))
     self.options["Joysticks"] = returning
   
   def resetFirmware(self):
-    model = self.options.get("dfu-model","atmega16u2")
+    try:
+      model = self.options["dfu-model"]
+    except KeyError: raise AssertionError("Please select a DFU card !")
     os.system("sudo dfu-programmer "+model+" erase") # changing param. 
     os.system("sudo dfu-programmer "+model+" flash compiler/firmwares/"+model+".hex")
     os.system("sudo dfu-programmer "+model+" reset")
 
-  def assembleProgram(self):
-    pass
-
   def sendFirmware(self,name):
-    model = self.options.get("dfu-model","atmega16u2")
-    # atmega16u2 for arduino UNO
+    try:
+      model = self.options["dfu-model"]
+    except KeyError: raise AssertionError("Please select a DFU card !")
     os.system("sudo dfu-programmer "+model+" erase") # changing param. 
     os.system("sudo dfu-programmer "+model+" flash core/compiler/firmwares/"+name+".hex")
     os.system("sudo dfu-programmer "+model+" reset")
@@ -65,25 +66,31 @@ class Compiler():
         if x.split(":")[0] == arg: return ":".join(x.split(":")[1:])
     return None
 
-  def compileJoystick(self,program,tas_data):
-    if not self.options.get("dfu-model","atmega16u2") in self.getProgArg(program,"compatibility").split(","): raise AssertionError("Joystick not compatible with selected dfu card")
+  def compileJoystick(self,program,tas_file):
+    assembly = importlib.import_module("core.compiler.joysticks."+program+".assembly")
+    try:model = self.options["dfu-model"]
+    except KeyError: raise AssertionError("Please select a DFU card !")
+    if not model in self.getJoystickInfoArg(program,"compatibility").split(","): raise AssertionError("Joystick not compatible with the selected dfu card")
+    
     self.makefileDict["DIR"] = program+"/"
-    self.makefileDict["TAS_DATA"] = tas_data
-    self.makefileDict["SRC"] = self.getProgArg(program,"makefile_src")
+    assembly.assembly(tas_file,"core/compiler/joysticks/"+program+"/")
+    self.makefileDict["MCU"] = model
+
     file_w = open('core/makefile', 'w')
     data = ""
+    print("Writing...")
 
-    # use basic makefile and options
-    if self.getProgArg(program,"makefile") == "":
+    # use write options and basic makefile
+    if self.getJoystickInfoArg(program,"makefile") == "":
+      self.makefileDict["SRC"] = self.getJoystickInfoArg(program,"makefile_src")
       file_r = open('core/compiler/base.mk', 'r')
       for key, value in self.makefileDict.items():
         data += key+" = "+value+"\n"
     else:
-      # only write dir, MCU & tasdata option and custom makefile
-      data+="DIR = "+self.makefileDict["DIR"]+"\n"
-      data+="TAS_DATA = "+self.makefileDict["TAS_DATA"]+"\n"
-      data+="MCU = "+self.options.get("dfu-model","atmega16u2")
-      file_r = open('core/compiler/'+program+"/"+self.getProgArg(program,"makefile"), 'r')
+      # write options and custom makefile
+      for key, value in self.makefileDict.items():
+        data += key+" = "+value+"\n"
+      file_r = open('core/compiler/'+program+"/"+self.getJoystickInfoArg(program,"makefile"), 'r')
     
     # add the makefile main content
     data +=file_r.read()
